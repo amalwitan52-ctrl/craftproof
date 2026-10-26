@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CraftProof</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
+body{background:#0a0a14;color:#e0e0ff;min-height:100vh;padding:20px;background-image:radial-gradient(circle at 20% 20%,rgba(120,0,255,0.15),transparent 50%),radial-gradient(circle at 80% 80%,rgba(0,255,200,0.1),transparent 50%)}
+.container{max-width:900px;margin:0 auto}
+h1{text-align:center;font-size:2rem;margin:20px 0;background:linear-gradient(90deg,#00ffc8,#a855f7,#ff0080);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:900}
+.sub{text-align:center;color:#8888aa;margin-bottom:30px;font-size:.9rem}
+.card{background:rgba(20,20,35,.8);border:1px solid rgba(120,0,255,.3);border-radius:16px;padding:24px;margin-bottom:20px}
+.card h2{font-size:1.1rem;margin-bottom:16px;color:#00ffc8}
+label{display:block;font-size:.85rem;color:#aaaacc;margin-bottom:6px;margin-top:12px}
+input{width:100%;padding:14px;background:#0a0a14;border:1px solid #333355;border-radius:10px;color:#e0e0ff;font-size:1rem;outline:none}
+input:focus{border-color:#00ffc8}
+button{width:100%;padding:16px;margin-top:20px;background:linear-gradient(90deg,#00ffc8,#a855f7);border:none;border-radius:10px;color:#0a0a14;font-size:1rem;font-weight:800;cursor:pointer}
+#result{margin-top:16px;padding:14px;border-radius:10px;font-family:monospace;font-size:.75rem;word-break:break-all;display:none}
+.ok{background:rgba(0,255,200,.1);border:1px solid #00ffc8;color:#00ffc8}
+.err{background:rgba(255,0,128,.1);border:1px solid #ff0080;color:#ff0080}
+.item{background:rgba(10,10,20,.9);border:1px solid #333355;border-radius:10px;padding:12px;margin-bottom:10px;font-family:monospace;font-size:.7rem}
+.item .head{display:flex;justify-content:space-between;margin-bottom:6px;color:#a855f7}
+.hash{color:#00ffc8;word-break:break-all;font-size:.65rem}
+.meta{color:#666688;font-size:.65rem;margin-top:4px}
+.empty{text-align:center;color:#666688;padding:20px;font-size:.85rem}
+.stats{display:flex;gap:10px;margin-bottom:20px}
+.stat{flex:1;background:rgba(20,20,35,.8);border:1px solid rgba(120,0,255,.3);border-radius:12px;padding:16px;text-align:center}
+.stat .n{font-size:1.8rem;font-weight:900;color:#00ffc8}
+.stat .l{font-size:.7rem;color:#8888aa;margin-top:4px}
+.refresh{background:transparent;border:1px solid #333355;color:#8888aa;padding:8px 16px;width:auto;font-size:.8rem;margin:0 0 0 auto;display:block}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>CraftProof</h1><p style="text-align:center;margin:8px 0 20px"><a href="/dashboard" style="color:#a855f7;text-decoration:none;font-size:.85rem">لوحة التحكم</a></p>
+<p class="sub">بروتوكول إثبات الحرفة - سجل شفافية غير قابل للتلاعب</p>
+<div class="stats">
+<div class="stat"><div class="n" id="count">0</div><div class="l">بصمة موثقة</div></div>
+<div class="stat"><div class="n" id="status">-</div><div class="l">حالة السجل</div></div>
+</div>
+<div class="card">
+<h2>توقيع منجز جديد</h2>
+<label>اسم المستقل / العميل</label>
+<input id="actor" placeholder="مثال: أحمد المصمم" autocomplete="off">
+<label>بصمة المنجز - SHA-256</label>
+<input id="artifactHash" placeholder="ألصق البصمة هنا" autocomplete="off">
+<button id="btn">توقيع وأثبت</button>
+<div id="result"></div>
+</div>
+<div class="card">
+<h2>سجل الشفافية</h2>
+<button class="refresh" id="refresh">تحديث السجل</button>
+<div id="list"><div class="empty">السجل فارغ - كن أول من يوقع</div></div>
+</div>
+</div>
+<script>
+var countEl=document.getElementById('count');
+var statusEl=document.getElementById('status');
+var actorEl=document.getElementById('actor');
+var hashEl=document.getElementById('artifactHash');
+var resultEl=document.getElementById('result');
+var listEl=document.getElementById('list');
+function sign(){
+  var a=actorEl.value.trim();
+  var h=hashEl.value.trim();
+  if(!a||!h){resultEl.className='err';resultEl.style.display='block';resultEl.textContent='الاسم والبصمة مطلوبان';return}
+  resultEl.style.display='block';resultEl.className='';resultEl.textContent='جار التوقيع...';
+  fetch('/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actor:a,artifactHash:h})})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    resultEl.className='ok';
+    resultEl.textContent='تم التوثيق - ID '+d.id+' - Hash '+d.hash;
+    actorEl.value='';hashEl.value='';load();
+  })
+  .catch(function(e){resultEl.className='err';resultEl.textContent='خطأ: '+e.message});
+}
+function load(){
+  fetch('/ledger').then(function(r){return r.json()}).then(function(d){
+    countEl.textContent=d.length;
+    statusEl.textContent=d.length?'OK':'-';
+    if(!d.length){listEl.innerHTML='<div class="empty">السجل فارغ - كن أول من يوقع</div>';return}
+    var html='';
+    for(var i=d.length-1;i>=0;i--){
+      var e=d[i];
+      html+='<div class="item"><div class="head"><span>#'+e.id+'</span><span>'+new Date(e.timestamp).toLocaleString('ar')+'</span></div><div style="color:#e0e0ff;margin-bottom:4px">'+e.actor+'</div><div class="hash">'+e.hash+'</div><div class="meta">artifact: '+e.artifactHash+'</div></div>';
+    }
+    listEl.innerHTML=html;
+  }).catch(function(){listEl.innerHTML='<div class="empty">تعذر تحميل السجل</div>'});
+}
+document.getElementById('btn').addEventListener('click',sign);
+document.getElementById('refresh').addEventListener('click',load);
+load();
+</script>
+</body>
+</html>

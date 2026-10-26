@@ -1,0 +1,30 @@
+const express=require('express');
+const cors=require('cors');
+const crypto=require('crypto');
+const fs=require('fs');
+const path=require('path');
+const app=express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname,'public')));
+const FILE=path.join(__dirname,'ledger.json');
+const load=()=>{try{return JSON.parse(fs.readFileSync(FILE))}catch{return[]}};
+const save=d=>fs.writeFileSync(FILE,JSON.stringify(d,null,2));
+app.post('/verify',(req,res)=>{
+const {actor,artifactHash,context}=req.body||{};
+if(!actor||!artifactHash)return res.status(400).json({error:'actor and artifactHash required'});
+const ledger=load();
+const prevHash=ledger.length?ledger[ledger.length-1].hash:'0';
+const entry={id:ledger.length+1,actor,artifactHash,context:context||{},prevHash,timestamp:new Date().toISOString()};
+entry.hash=crypto.createHash('sha256').update(JSON.stringify(entry)).digest('hex');
+ledger.push(entry);
+save(ledger);
+res.json(entry);
+});
+app.get('/ledger',(req,res)=>res.json(load()));
+app.get('/verify/:id',(req,res)=>{
+const e=load().find(x=>x.id==req.params.id);
+if(!e)return res.status(404).json({error:'not found'});
+res.json(e);
+});
+app.listen(3000,()=>console.log('CraftProof V1 on 3000'));

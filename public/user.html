@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CraftProof - ملف موثق</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
+body{background:#0a0a14;color:#e0e0ff;min-height:100vh;padding:20px;background-image:radial-gradient(circle at 20% 20%,rgba(120,0,255,0.15),transparent 50%),radial-gradient(circle at 80% 80%,rgba(0,255,200,0.1),transparent 50%)}
+.container{max-width:700px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;margin:20px 0}
+h1{font-size:1.5rem;background:linear-gradient(90deg,#00ffc8,#a855f7,#ff0080);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-weight:900}
+a{color:#00ffc8;text-decoration:none;font-size:.85rem;border:1px solid #333355;padding:8px 14px;border-radius:8px}
+.profile{background:rgba(20,20,35,.85);border:1px solid rgba(120,0,255,.4);border-radius:16px;padding:24px;text-align:center;margin-bottom:20px}
+.avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#00ffc8,#a855f7);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;color:#0a0a14}
+.name{font-size:1.4rem;font-weight:800;margin-bottom:6px}
+.badge{display:inline-block;background:rgba(0,255,200,.15);color:#00ffc8;padding:6px 14px;border-radius:20px;font-size:.75rem;font-weight:700;border:1px solid #00ffc8;margin-top:8px}
+.count{margin-top:14px;font-size:.85rem;color:#8888aa}
+.count b{color:#00ffc8;font-size:1.2rem}
+.item{background:rgba(10,10,20,.9);border:1px solid #333355;border-radius:10px;padding:14px;margin-bottom:10px;font-family:monospace;font-size:.7rem}
+.item .head{display:flex;justify-content:space-between;margin-bottom:6px;color:#a855f7}
+.hash{color:#00ffc8;word-break:break-all;font-size:.65rem;line-height:1.4}
+.empty{text-align:center;color:#666688;padding:30px;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="top">
+<h1>CraftProof</h1>
+<a href="/">رجوع</a>
+</div>
+<div class="profile">
+<div class="avatar" id="av">?</div>
+<div class="name" id="name">...</div>
+<div class="badge">موثق بواسطة CraftProof</div>
+<div class="count"><b id="cnt">0</b> بصمة موثقة</div>
+</div>
+<div id="list"></div>
+</div>
+<script>
+var handle=decodeURIComponent(location.pathname.split('/u/')[1]||'');
+fetch('/api/user/'+encodeURIComponent(handle)).then(function(r){return r.json()}).then(function(d){
+  if(d.error){document.getElementById('name').textContent='غير موجود';document.getElementById('list').innerHTML='<div class="empty">لا توجد بصمات لهذا الاسم</div>';return}
+  document.getElementById('name').textContent=d.handle;
+  document.getElementById('av').textContent=d.handle.charAt(0);
+  document.getElementById('cnt').textContent=d.count;
+  var html='';
+  for(var i=d.entries.length-1;i>=0;i--){
+    var e=d.entries[i];
+    html+='<div class="item"><div class="head"><span>#'+e.id+'</span><span>'+new Date(e.timestamp).toLocaleString('ar')+'</span></div><div class="hash">'+e.hash+'</div></div>';
+  }
+  document.getElementById('list').innerHTML=html;
+}).catch(function(){document.getElementById('list').innerHTML='<div class="empty">خطأ في التحميل</div>'});
+</script>
+</body>
+</html>
